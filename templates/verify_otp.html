@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Verify OTP | WealthWise</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container center">
+    <h2>🔐 Enter OTP</h2>
+    <form method="POST">
+      <input type="text" name="otp" placeholder="Enter OTP" required />
+      <button type="submit">Verify OTP</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard | WealthWise</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <h2><i class="fas fa-user"></i> Welcome, {{ current_user.mobile }}</h2>
+
+    <form action="/set_budget" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <input type="number" name="income" placeholder="Monthly Income ($)" required>
+      <input type="number" name="goal" placeholder="Savings Goal ($)" required>
+      <button type="submit"><i class="fas fa-piggy-bank"></i> Save Budget</button>
+      <a href="/reset_budget" class="btn"><i class="fas fa-undo"></i> Reset Budget</a>
+    </form>
+
+    <hr>
+
+    <h3><i class="fas fa-plus-circle"></i> Add Expense</h3>
+    <select id="category">
+      <option>GROCERY</option>
+      <option>ENTERTAINMENT</option>
+      <option>DINING & SOCIAL LIFE</option>
+      <option>TRAVEL & TRANSPORT</option>
+      <option>HOME NEEDS</option>
+      <option>LIFESTYLE & WELLNESS</option>
+    </select>
+    <input type="text" id="item" placeholder="Expense Item" required>
+    <input type="number" id="amount" placeholder="Amount ($)" required>
+    <button type="button" onclick="addExpense()"><i class="fas fa-wallet"></i> Add Expense</button>
+
+    <button class="btn" onclick="showSummary()"><i class="fas fa-lightbulb"></i> Show Spending Summary</button>
+
+    <h3><i class="fas fa-receipt"></i> Expense History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Item</th>
+          <th>Amount ($)</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+
+      <!-- Summary Button -->
+    <button id="showSummaryBtn" class="btn btn-primary gradient-btn">
+    <i class="fas fa-info-circle"></i> View Summary
+    </button>
+    <!-- Summary Modal (loaded from separate template using AJAX) -->
+    <div id="summaryModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content" id="summaryContent">
+      <!-- Summary content will be injected here via AJAX -->
+    </div>
+  </div>
+</div>
+
+
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td>{{ e.category }}</td>
+          <td>{{ e.item }}</td>
+          <td>${{ "%.2f"|format(e.amount) }}</td>
+          <td>{{ e.date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <a href="/download_csv" class="btn"><i class="fas fa-download"></i> Download Expense History</a>
+    <a href="/analytics" class="btn"><i class="fas fa-chart-pie"></i> View Monthly Analytics</a>
+
+    <h4>{{ advice }}</h4>
+    <canvas id="chartCanvas"></canvas>
+    <a href="{{ url_for('logout') }}" class="btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+
+  <script>
+    async function addExpense() {
+      const category = document.getElementById("category").value;
+      const item = document.getElementById("item").value;
+      const amount = document.getElementById("amount").value;
+
+      const res = await fetch("/add_expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, item, amount })
+      });
+
+      const data = await res.json();
+
+      Swal.fire({
+        title: 'Expense Added!',
+        html: data.message + (data.goal_alert ? `<br><b>${data.goal_alert.replace(/\n/g, "<br>")}</b>` : ''),
+        icon: data.goal_alert ? 'warning' : 'success',
+        confirmButtonText: 'OK',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+      });
+
+      setTimeout(() => location.reload(), 1500);
+    }
+
+    async function showSummary() {
+      const res = await fetch("/summary_data");
+      const data = await res.json();
+
+      Swal.fire({
+        title: '📊 Your Financial Summary',
+        html: `
+          <b>Total Income:</b> $${data.income}<br>
+          <b>Total Expenses:</b> $${data.total}<br>
+          <b>Savings Goal:</b> $${data.goal}<br><br>
+          <b>${data.tip}</b>
+        `,
+        icon: data.tip.includes("Exceeded") ? 'warning' : 'info',
+        confirmButtonText: 'OK',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+      });
+    }
+
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, '#a06bff');
+    gradient.addColorStop(1, '#4b0082');
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: {{ categories|tojson }},
+        datasets: [{
+          label: 'Spending by Category',
+          data: {{ amounts|tojson }},
+          backgroundColor: gradient,
+          borderRadius: 10,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  </script>
+  <script>
+    $(document).ready(function () {
+      $("#showSummaryBtn").on("click", function () {
+        $.get("/summary_popup", function (data) {
+          $("#summaryContent").html(data);
+          $("#summaryModal").modal("show");
+        });
+      });
+    });
+  </script>
+  
+</body>
+</html>

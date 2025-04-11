@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics | WealthWise</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>📈 Monthly Analytics Dashboard</h2>
+
+    <canvas id="lineChart" style="margin: 20px 0;"></canvas>
+    <canvas id="pieChart" style="margin: 20px 0;"></canvas>
+    <canvas id="radialChart" style="margin: 20px 0;"></canvas>
+
+    <a href="{{ url_for('dashboard') }}" class="btn">⬅️ Back to Dashboard</a>
+  </div>
+
+  <script>
+    // Line Chart: Date-wise Expenses
+    new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: {{ by_date.keys()|list|tojson }},
+        datasets: [{
+          label: 'Date-wise Spending',
+          data: {{ by_date.values()|list|tojson }},
+          backgroundColor: 'rgba(98, 0, 234, 0.2)',
+          borderColor: '#9c27b0',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // Pie Chart: Category Breakdown
+    new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: {
+        labels: {{ by_category.keys()|list|tojson }},
+        datasets: [{
+          data: {{ by_category.values()|list|tojson }},
+          backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#8bc34a', '#e91e63', '#673ab7']
+        }]
+      }
+    });
+
+    // Radial Chart: Savings Progress
+    new Chart(document.getElementById('radialChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Savings Goal', 'Remaining'],
+        datasets: [{
+          data: {{ savings|tojson }},
+          backgroundColor: ['#00c851', '#ffbb33']
+        }]
+      }
+    });
+  </script>
+</body>
+</html>
